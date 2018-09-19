@@ -17,8 +17,8 @@ from preprocessing import inception_preprocessing
 
 slim = tf.contrib.slim
 
-_NUM_CLASSES = 243
-INFO_FILE = 'coin_info.json'
+_NUM_CLASSES = 20
+INFO_FILE = 'use_coin_info.json'
 
 merge_info = {'kmmerge123_back': ['km1_back', 'km2_back', 'km3_back'],
               'kmmerge341342343_back': ['km341_back', 'km342_back', 'km343_back'],
@@ -46,10 +46,8 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string(
     'model_name', 'inception_v4', 'The name of the architecture to evaluate.')
 
-tf.app.flags.DEFINE_float(
-    'moving_average_decay', None,
-    'The decay to use for the moving average.'
-    'If left as None, then moving averages are not used.')
+tf.app.flags.DEFINE_integer(
+    'predict_image_size', None, 'Predict image size')
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -101,12 +99,11 @@ def main(_):
     tf.logging.set_verbosity(tf.logging.INFO)
 
 ##############################################################################################################
-    batch_size = 1
     network_fn = nets_factory.get_network_fn(
         FLAGS.model_name,
         num_classes=_NUM_CLASSES,
         is_training=False)
-    image_size = network_fn.default_image_size
+    image_size = FLAGS.predict_image_size or network_fn.default_image_size
 
     # images, images_raw = load_batch_2(FLAGS.predict_file, height=image_size, width=image_size)
     image_string = tf.gfile.FastGFile(FLAGS.predict_file, 'rb').read()
@@ -152,6 +149,8 @@ def main(_):
       info = class_names_to_info[origin_name]
       print('value is %s, it is %s of the coin, the other info is %s' % (info['value'], back_or_front, info['info']))
 
+    return info['value']
+
 
   ########################################################################################################################
 
@@ -191,3 +190,12 @@ def main(_):
 
 if __name__ == '__main__':
   tf.app.run()
+
+def server_predict(predict_file):
+  FLAGS.predict_file = predict_file
+  FLAGS.model_name = 'inception_v4'
+  FLAGS.checkpoint_path = './data/ckpt_inception4'
+  FLAGS.dataset_dir = './data/usecoin'
+  FLAGS.predict_image_size = 224
+  return main('')
+
